@@ -1,26 +1,27 @@
-//this is a program to get command from cloud, use arduino platform with 768 serial buffer size
+//an integrated program for mainsnode
 #include <avr/pgmspace.h>
 #include <SoftwareSerial.h>
+#include <EmonLib.h>
+
 SoftwareSerial debugPort(A3,A2);
+EnergyMonitor emon;
 
-//"AT+CWJAP=\"Tritronik Mobile\",\"Tri12@11\""
-//"AT+CIPSTART=\"TCP\",\"184.106.153.149\",80" //thingspeak.com
-//String cmd = "GET /talkbacks/887/commands/last?api_key=ACM8XW24UDVY1GTV HTTP/1.1\r\n\r\n"; //length 70
-//String cmd = "GET / HTTP/1.0\r\n\r\n";
-
-char state = 'u'; //device state, unknown
+char state = 'u'; //device status unknown
 
 void setup(){
   Serial.begin(9600);
   Serial.setTimeout(5000);
   
   debugPort.begin(9600);
-  debugPort.println(F("ESP8266 Demo"));
+  debugPort.println(F("integrated demo"));
+  
+  emon.current(1,2.3923);
+  emon.voltage(2,468.0851,2);
   
   Serial.println(F("AT+RST"));
   while(!Serial.available());
   if(Serial.find("Ready")){
-    debugPort.println(F("Ready"));
+    debugPort.println(F("ready"));
   }
   else{
     debugPort.println(F("no response"));
@@ -50,14 +51,69 @@ void setup(){
 }
 
 void loop(){
+  float power = calculatePower();
+  sendData(power);
+  delay(2000);
+  for(int i=0;i<5;i++){
+    getCmd();
+  }
+}
+
+float calculatePower(){
+//  float power = random(60,100);
+//  return power;
+  emon.calcVI(20,2000);
+  float realPower = emon.realPower;
+  return realPower;
+}
+
+void sendData(float data){
+  Serial.println(F("AT+CIPSTART=\"TCP\",\"184.106.153.149\",80"));
+  delay(2000);
+  if(Serial.find("ERROR")) return;
+  //delay(1000);
+  
+  char temp[6];
+  String strData;
+  String cmd = "GET /update?api_key=99N5T6AH3NY4UKNA&field1=";
+  dtostrf(data,4,1,temp);
+  strData = String(temp);
+  cmd += strData;
+
+  Serial.print(F("AT+CIPSEND="));
+  Serial.println(cmd.length()+2);
+  if(Serial.find(">")){
+    Serial.println(cmd);
+  }
+  else{
+    Serial.println(F("AT+CIPCLOSE"));
+    delay(1000);
+    return;
+  }
+  
+  if(Serial.find("OK")){
+    debugPort.println(F("dt sent"));
+    Serial.println(F("AT+CIPCLOSE"));
+    delay(1000);
+  }
+  else{
+    debugPort.println(F("send err"));
+    Serial.println(F("AT+CIPCLOSE"));
+    delay(1000);
+  }
+}
+
+void getCmd(){
   Serial.println(F("AT+CIPSTART=\"TCP\",\"184.106.153.149\",80"));
   while(Serial.available()){
-    char c = Serial.read();
+    Serial.read();
+  }
+  while(Serial.availableCmd()){
+    char c = Serial.readCmd();
     if(c=='#') state = 'f'; //state off
     else if(c=='&') state = 'n'; //state on
-    debugPort.write(c);
   }
-  if(Serial.find("Error")) return;
+  if(Serial.find("ERROR")) return;
   delay(1000);
   
   Serial.println(F("AT+CIPSEND=70"));
@@ -71,14 +127,15 @@ void loop(){
   }
   Serial.print(F("GET /talkbacks/887/commands/last?api_key=ACM8XW24UDVY1GTV HTTP/1.1\r\n\r\n"));
   while(Serial.available()){
+    Serial.read();
+  }
+  while(Serial.availableCmd()){
     char c = Serial.read();
     if(c=='#') state = 'f'; //state off
     else if(c=='&') state = 'n'; //state on
-    debugPort.write(c);
   }
   delay(1000);
   
-  //start - working if debugPort.write(c) is not commented
   if(state == 'f'){ //turn off
     debugPort.println("turn off");
     digitalWrite(10, LOW);
@@ -90,7 +147,6 @@ void loop(){
   else{
     debugPort.println(state);
   }
-  //end not fully working
   
   Serial.println(F("AT+CIPCLOSE"));
   debugPort.println(F("\r\n=====\r\n"));
@@ -98,7 +154,7 @@ void loop(){
 }
 
 boolean connectWifi(){
-  Serial.println("AT+CWMODE=1");
+  Serial.println(F("AT+CWMODE=1"));
   delay(1000);
   Serial.println(F("AT+CWJAP=\"Tritronik Mobile\",\"Tri12@11\""));
   if(Serial.find("OK")){

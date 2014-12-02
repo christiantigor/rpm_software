@@ -1,0 +1,5 @@
+Notes:
+Copy arduino_cmd_serialbuf to ../Program Files/Arduino/hardware/arduino/cores
+Copy and replace (but backup first) boards.txt on ../Program Files/Arduino/hardware/arduino
+
+As for 2014-12-01, program can receive # and & command

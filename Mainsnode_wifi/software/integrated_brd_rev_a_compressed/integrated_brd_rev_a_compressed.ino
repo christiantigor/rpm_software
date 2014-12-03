@@ -1,24 +1,26 @@
 //an integrated program for mainsnode
 #include <avr/pgmspace.h>
-#include <SoftwareSerial.h>
+//#include <SoftwareSerial.h>
 #include <EmonLib.h>
 
-SoftwareSerial debugPort(A3,A2);
+//SoftwareSerial debugPort(9,8);
 EnergyMonitor emon;
 
-int state = 0; //device status off
+byte state = 2; //device status 0:off, 1:on, 2:unknown
 char command[3];
 
 void setup(){
   Serial.begin(9600);
   Serial.setTimeout(5000);
   
-  debugPort.begin(9600);
-  //debugPort.println(F("integrated demo"));
+  //debugPort.begin(4800);
+  //debugPort.println(F("demo"));
   
-  pinMode(10,OUTPUT); //relay
-  pinMode(13,OUTPUT); //indicator connected
-  digitalWrite(10,LOW);
+  pinMode(7,OUTPUT); //relay
+  pinMode(A0,OUTPUT); //indicator connected
+  digitalWrite(A0,HIGH); //turn off connection indicator
+  delay(500);
+  digitalWrite(A0,LOW);
   
   emon.current(1,2.3923);
   emon.voltage(2,468.0851,2);
@@ -26,10 +28,10 @@ void setup(){
   Serial.println(F("AT+RST"));
   while(!Serial.available());
   if(Serial.find("Ready")){
-    debugPort.println(F("ready"));
+    //debugPort.println(F("rdy"));
   }
   else{
-    debugPort.println(F("no response"));
+    //debugPort.println(F("no rspns"));
     while(1);
   }
   delay(1000);
@@ -42,11 +44,11 @@ void setup(){
     }
   }
   if(isConnect){
-    debugPort.println(F("connected"));
-    digitalWrite(10,HIGH);
+    //debugPort.println(F("connected"));
+    digitalWrite(A0,HIGH); //turn on connection indicator
   }
   else{
-    debugPort.println(F("not connected"));
+    //debugPort.println(F("not connected"));
     while(1);
   }
   delay(1000);
@@ -59,7 +61,7 @@ void loop(){
   sendData(power);
   delay(2000);
   
-  for(int i=0;i<3;i++){
+  for(int i=0;i<5;i++){
     getCmd();
   }
 }
@@ -97,10 +99,10 @@ void sendData(float data){
   if(Serial.find("OK")){
     //debugPort.println(F("dt sent"));
     digitalWrite(13,HIGH);
-    delay(500);
+    delay(250);
     digitalWrite(13,LOW);
     Serial.println(F("AT+CIPCLOSE"));
-    delay(500);
+    delay(250);
   }
   else{
     //debugPort.println(F("send err"));
@@ -130,11 +132,13 @@ void getCmd(){
   
   Serial.println(F("AT+CIPSEND=70"));
   if(Serial.find(">")){
-    debugPort.print(">");
+    //debugPort.print(">");
+    //delay(1); //duration for print is around 10sec/baud per char
   }
   else{
     Serial.println(F("AT+CIPCLOSE"));
-    debugPort.println("connect timeout");
+    //debugPort.println("connect timeout");
+    //delay(17); //duration for print is around 10sec/baud per char
     return;
   }
   Serial.print(F("GET /talkbacks/887/commands/last?api_key=ACM8XW24UDVY1GTV HTTP/1.1\r\n\r\n"));
@@ -155,32 +159,21 @@ void getCmd(){
   delay(1000);
   
   if(command[0]=='#' && command[1]=='#'){ //turn off
-    debugPort.println("turn off");
-    for(int j=0;j<3;j++){
-      digitalWrite(13,HIGH);
-      delay(500);
-      digitalWrite(13,LOW);
-      delay(500);
-    }
+    //debugPort.println(F("turn off"));
+    digitalWrite(7,LOW);
+    state = 0;
   }
   else if(command[0]=='&' && command[1]=='&'){ //turn on
-    debugPort.println("turn on");
-    for(int j=0;j<2;j++){
-      digitalWrite(13,HIGH);
-      delay(500);
-      digitalWrite(13,LOW);
-      delay(500);
-    }
+    //debugPort.println(F("turn on"));
+    digitalWrite(7,HIGH);
+    state = 1;
   }
   else{
-    debugPort.println(state);
-    digitalWrite(13,HIGH);
-    delay(1000);
-    digitalWrite(13,LOW);
+    //debugPort.println(state);
   }
   
   Serial.println(F("AT+CIPCLOSE"));
-  debugPort.println(F("\r\n=====\r\n"));
+  //debugPort.println(F("===\r\n"));
   delay(1000);
 }
 
@@ -188,6 +181,7 @@ boolean connectWifi(){
   Serial.println(F("AT+CWMODE=1"));
   delay(1000);
   Serial.println(F("AT+CWJAP=\"Tritronik Mobile\",\"Tri12@11\""));
+  //Serial.println(F("AT+CWJAP=\"TCAndroid\",\"qwertyuiop\""));
   if(Serial.find("OK")){
     return true;
   }

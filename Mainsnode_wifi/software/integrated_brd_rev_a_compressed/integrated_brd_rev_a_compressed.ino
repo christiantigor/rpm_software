@@ -18,7 +18,7 @@ void setup(){
   
   pinMode(7,OUTPUT); //relay
   pinMode(A1,OUTPUT); //indicator connected
-  digitalWrite(A1,HIGH); //turn off connection indicator
+  digitalWrite(A1,HIGH); //turn on connection indicator
   delay(500);
   digitalWrite(A1,LOW);
   

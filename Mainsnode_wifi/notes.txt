@@ -1,2 +1,26 @@
 To increase Arduino Serial Buffer: -> in order to get full http response
 	Follow this tutorial (http://www.hobbytronics.co.uk/arduino-serial-buffer-size)
+	
+EMS WiFi plug documentation:
+
+_|-|_ button pressed -> config mode
+
+_| |_ button  unpressed -> operation mode
+
+Config Mode
+Status Light:
+- BLINK CONTINUOUSLY if there is error. unplug then plug the device.
+- BLINK ONCE if started correctly or device receiving data.
+Usage:
+- If device started correctly, then connect host to WiFi with SSID ESP_****
+- Run application. If there is BLINK ONCE, it is correct.
+- Send SSID or password with format <SSIDdata> or (PASSdata) respectively
+
+Operation Mode:
+Status Light:
+- BLINK CONTINUOUSLY if there is error. unplug then plug the device.
+- TURN ON if connected to preset WiFi
+
+Switch Light:
+- TURN ON if device receive on cmd
+- TURN OFF if device receive off cmd

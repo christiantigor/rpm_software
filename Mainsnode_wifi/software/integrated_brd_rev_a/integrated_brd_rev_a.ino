@@ -17,11 +17,11 @@ void setup(){
   debugPort.println(F("demo"));
   
   pinMode(7,OUTPUT); //relay
-  pinMode(A0,OUTPUT); //indicator connected
-  digitalWrite(A0,LOW); //turn off connection indicator
+  pinMode(A1,OUTPUT); //connection indicator
+  digitalWrite(A1,LOW); //turn off connection indicator
   
-  emon.current(1,2.3923);
-  emon.voltage(2,468.0851,2);
+  emon.current(2,1.6042);
+  emon.voltage(0,488.8889,1);
   
   Serial.println(F("AT+RST"));
   while(!Serial.available());
@@ -42,11 +42,11 @@ void setup(){
     }
   }
   if(isConnect){
-    //debugPort.println(F("connected"));
-    digitalWrite(A0,HIGH); //turn on connection indicator
+    debugPort.println(F("connected"));
+    digitalWrite(A1,HIGH); //turn on connection indicator
   }
   else{
-    //debugPort.println(F("not connected"));
+    debugPort.println(F("not connected"));
     while(1);
   }
   delay(1000);
@@ -66,8 +66,8 @@ void loop(){
 
 float calculatePower(){
   emon.calcVI(20,2000);
-  float realPower = emon.realPower;
-  return realPower;
+  float apparentPower = emon.apparentPower;
+  return apparentPower;
 }
 
 void sendData(float data){

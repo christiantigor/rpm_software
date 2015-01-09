@@ -17,10 +17,8 @@ void setup(){
   //debugPort.println(F("demo"));
   
   pinMode(7,OUTPUT); //relay
-  pinMode(A1,OUTPUT); //indicator connected
-  digitalWrite(A1,HIGH); //turn on connection indicator
-  delay(500);
-  digitalWrite(A1,LOW);
+  pinMode(A1,OUTPUT); //connection indicator
+  digitalWrite(A1,LOW); //turn on connection indicator
   
   emon.current(2,1.6042);
   emon.voltage(0,488.8889,1);
@@ -61,7 +59,7 @@ void loop(){
   sendData(power);
   delay(2000);
   
-  for(int i=0;i<5;i++){
+  for(int i=0;i<3;i++){
     getCmd();
   }
 }

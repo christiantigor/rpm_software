@@ -2,9 +2,9 @@
 #include <avr/pgmspace.h>
 #include <EEPROM.h>
 #include <EmonLib.h>
-#include <SoftwareSerial.h>
+//#include <SoftwareSerial.h>
 
-SoftwareSerial debugPort(9,8);
+//SoftwareSerial debugPort(9,8); //rev_a board
 EnergyMonitor emon;
 
 byte state = 2; //device status 0:off, 1:on, 2:unknown
@@ -16,38 +16,38 @@ void setup(){
   Serial.begin(9600);
   Serial.setTimeout(5000);
   
-  debugPort.begin(4800);
-  debugPort.println(F("demo"));
+  //debugPort.begin(4800);
+  //debugPort.println(F("demo"));
   
   pinMode(2,INPUT); //config button
   pinMode(7,OUTPUT); //relay
   pinMode(A1,OUTPUT); //connection indicator
   digitalWrite(A1,LOW); //turn off connection indicator
   
-  emon.current(2,1.6042);
-  emon.voltage(0,488.8889,1);
+  emon.current(2,2.3923);
+  emon.voltage(0,468.0851,2);
   
   Serial.println(F("AT+RST"));
-  delay(1000);
   while(!Serial.available());
   if(Serial.find("Ready")){
-    debugPort.println(F("rdy"));
+    //debugPort.println(F("rdy"));
   }
   else{
-    debugPort.println(F("no rspn"));
+    //debugPort.println(F("no rspns"));
     //indicator
     while(1){
       digitalWrite(A1,HIGH);
-      delay(200);
+      delay(500);
       digitalWrite(A1,LOW);
-      delay(200);
+      delay(500);
     }
   }
-  delay(1000);
+  delay(200);
   
   //mode = 1; //config mode
   //mode = 0; //operation mode
   mode = digitalRead(2);
+  //debugPort.println(mode);
 }
 
 void loop(){
@@ -58,7 +58,7 @@ void loop(){
     Serial.println(F("AT+CIPMUX=1"));
     delay(200);
     Serial.println(F("AT+CIPSERVER=1,8888"));
-    delay(1000);
+    delay(200);
     while(1){
       writeConfig();
     }
@@ -66,23 +66,24 @@ void loop(){
   else if(mode == 0){
     //connect to wifi
     boolean isConnect = false;
-    for(int i=0;i<3;i++){
+    for(int i=0;i<2;i++){
       if(connectWifi()){
         isConnect=true;
         break;
       }
     }
     if(isConnect){
-      debugPort.println(F("cnctd"));
+      //debugPort.println(F("connected"));
       digitalWrite(A1,HIGH); //turn on connection indicator
     }
     else{
-      debugPort.println(F("not cnctd"));
+      //debugPort.println(F("not connected"));
+      //indicator
       while(1){
         digitalWrite(A1,HIGH);
-        delay(200);
+        delay(500);
         digitalWrite(A1,LOW);
-        delay(200);
+        delay(500);
       }
     }
     delay(200);
@@ -91,7 +92,8 @@ void loop(){
       float power = calculatePower();
       sendData(power);
       delay(2000);
-      for(int i=0;i<4;i++){
+      
+      for(char i=0;i<3;i++){
         getCmd();
       }
     }
@@ -100,8 +102,8 @@ void loop(){
 
 float calculatePower(){
   emon.calcVI(20,2000);
-  float apparentPower = emon.apparentPower;
-  return apparentPower;
+  float realPower = emon.realPower;
+  return realPower;
 }
 
 void sendData(float data){
@@ -164,11 +166,11 @@ void getCmd(){
   
   Serial.println(F("AT+CIPSEND=70"));
   if(Serial.find(">")){
-    debugPort.print(F(">"));
+    //debugPort.print(">");
   }
   else{
     Serial.println(F("AT+CIPCLOSE"));
-    debugPort.println(F("cnct tmeout"));
+    //debugPort.println("connect timeout");
     return;
   }
   Serial.print(F("GET /talkbacks/887/commands/last?api_key=ACM8XW24UDVY1GTV HTTP/1.1\r\n\r\n"));
@@ -189,21 +191,27 @@ void getCmd(){
   delay(1000);
   
   if(command[0]=='#' && command[1]=='#' && state!=0){ //turn off
-    debugPort.println(F("t off"));
+    //debugPort.println(F("turn off"));
     digitalWrite(7,LOW);
     state = 0;
   }
   else if(command[0]=='&' && command[1]=='&' && state!=1){ //turn on
-    debugPort.println(F("t on"));
+    //debugPort.println(F("turn on"));
     digitalWrite(7,HIGH);
     state = 1;
   }
+  else if(state==0){
+    //debugPort.println(F("keep off"));
+  }
+  else if(state==1){
+    //debugPort.println(F("keep on"));
+  }
   else{
-    debugPort.println(state);
+    //debugPort.println(state);
   }
   
   Serial.println(F("AT+CIPCLOSE"));
-  debugPort.println(F("===\r\n"));
+  //debugPort.println(F("===\r\n"));
   delay(1000);
 }
 
@@ -230,7 +238,6 @@ boolean connectWifi(){
     }
   }
   Serial.print(recvConf); //wifi ssid
-  //debugPort.println(recvConf);
   Serial.print(F("\",\""));
   //end read wifi ssid
 
@@ -251,8 +258,7 @@ boolean connectWifi(){
     }
   }
   Serial.print(recvConf); //wifi password
-  //debugPort.println(recvConf);
-  Serial.print(F("\""));
+  Serial.print("\"");
   //end read wifi password
   
   if(Serial.find("OK")){
@@ -299,7 +305,7 @@ void writeConfig(){
       addr++;
       index++;
     }
-    debugPort.println(F("wrt ssid"));
+    //debugPort.println(F("ssid is written"));
   }
   else if(recvConf[index] == '('){
     addr = 128;
@@ -309,12 +315,11 @@ void writeConfig(){
       addr++;
       index++;
     }
-    debugPort.println(F("wrt pswd"));
+    //debugPort.println(F("pswd is written"));
   }
-  debugPort.println(F("==="));
-  
+  //debugPort.println(F("==="));
   digitalWrite(A1,HIGH);
-  delay(250);
+  delay(200);
   digitalWrite(A1,LOW);
-  delay(250);
+  delay(200);
 }
